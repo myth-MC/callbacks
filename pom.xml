@@ -11,6 +11,7 @@
     <modules>
         <module>annotations</module>
         <module>processor</module>
+        <module>library</module>
     </modules>
 
     <properties>
@@ -40,7 +41,7 @@
     </profiles>
 
     <name>callbacks</name>
-    <description>A simple Java library to manage events.</description>
+    <description>A simple Java library designed to facilitate the management of event flows.</description>
     <url>https://github.com/myth-MC/callbacks</url>
     <licenses>
         <license>
@@ -59,36 +60,6 @@
 
     <build>
         <defaultGoal>clean package</defaultGoal>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
-        <plugins>
-            <plugin>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.6.0</version>
-                <configuration>
-                    <transformers>
-                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                    </transformers>
-                    <artifactSet>
-                        <excludes>
-                            <exclude>com.palantir.javapoet:javapoet</exclude>
-                            <exclude>com.google.auto.service:auto-service-annotations</exclude>
-                        </excludes>
-                    </artifactSet>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
     </build>
 
 </project>
