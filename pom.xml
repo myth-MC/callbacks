@@ -41,7 +41,7 @@
     </profiles>
 
     <name>callbacks</name>
-    <description>A simple Java library designed to facilitate the management of event flows.</description>
+    <description>A Java library for the management of event flows.</description>
     <url>https://github.com/myth-MC/callbacks</url>
     <licenses>
         <license>
