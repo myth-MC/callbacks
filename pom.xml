@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ovh.mythmc</groupId>
+    <artifactId>callbacks</artifactId>
+    <version>0.1.0</version>
+    <packaging>pom</packaging>
+    <modules>
+        <module>annotations</module>
+        <module>processor</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <distributionManagement>
+                <repository>
+                    <id>myth-mc-releases</id>
+                    <url>https://repo.mythmc.ovh/releases</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+        <profile>
+            <id>snapshot</id>
+            <distributionManagement>
+                <repository>
+                    <id>myth-mc-releases</id>
+                    <url>https://repo.mythmc.ovh/snapshots</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+    </profiles>
+
+    <name>callbacks</name>
+    <description>A simple Java library to manage events.</description>
+    <url>https://github.com/myth-MC/callbacks</url>
+    <licenses>
+        <license>
+            <name>GNU General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/gpl-3.0.html#license-text</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>U8092</name>
+            <email>uisl8092@gmail.com</email>
+            <organization>myth-MC</organization>
+            <organizationUrl>https://github.com/myth-MC</organizationUrl>
+        </developer>
+    </developers>
+
+    <build>
+        <defaultGoal>clean package</defaultGoal>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <transformers>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                    </transformers>
+                    <artifactSet>
+                        <excludes>
+                            <exclude>com.palantir.javapoet:javapoet</exclude>
+                            <exclude>com.google.auto.service:auto-service-annotations</exclude>
+                        </excludes>
+                    </artifactSet>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
