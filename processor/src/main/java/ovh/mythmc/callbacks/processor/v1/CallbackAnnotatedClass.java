@@ -89,14 +89,14 @@ public final class CallbackAnnotatedClass {
             .build();
 
         // Listener map
-        var mapOfCallbackListeners = ParameterizedTypeName.get(ClassName.get("java.util", "HashMap"), TypeName.get(IdentifierKey.class), callbackListenerClass);
+        var mapOfCallbackListeners = ParameterizedTypeName.get(ClassName.get("java.util", "HashMap"), TypeName.get(String.class), callbackListenerClass);
         var listenerMap = FieldSpec.builder(mapOfCallbackListeners.box(), "callbackListeners")
             .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
             .initializer("new $T<>()", HashMap.class)
             .build();
 
         // Handler map
-        var mapOfCallbackHandlers = ParameterizedTypeName.get(ClassName.get("java.util", "HashMap"), TypeName.get(IdentifierKey.class), callbackHandlerClass);
+        var mapOfCallbackHandlers = ParameterizedTypeName.get(ClassName.get("java.util", "HashMap"), TypeName.get(String.class), callbackHandlerClass);
         var handlerMap = FieldSpec.builder(mapOfCallbackHandlers.box(), "callbackHandlers")
             .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
             .initializer("new $T<>()", HashMap.class)
@@ -115,7 +115,7 @@ public final class CallbackAnnotatedClass {
             .addParameter(identifierKeyParameter)
             .addParameter(callbackListenerParameter)
             .addParameters(typeVariableNamesAsParameters)
-            .addStatement("callbackListeners.put($N, $N)", identifierKeyParameter, callbackListenerParameter)
+            .addStatement("callbackListeners.put($N.toString(), $N)", identifierKeyParameter, callbackListenerParameter)
             .build();
 
         var registerListenerWithStringKey = MethodSpec.methodBuilder("registerListener")
@@ -124,7 +124,7 @@ public final class CallbackAnnotatedClass {
             .addParameter(String.class, "key")
             .addParameter(callbackListenerParameter)
             .addParameters(typeVariableNamesAsParameters)
-            .addStatement("callbackListeners.put(IdentifierKey.of(key), $N)", callbackListenerParameter)
+            .addStatement("callbackListeners.put(key, $N)", callbackListenerParameter)
             .build();
 
         var registerHandler = MethodSpec.methodBuilder("registerHandler")
@@ -133,7 +133,7 @@ public final class CallbackAnnotatedClass {
             .addParameter(identifierKeyParameter)
             .addParameter(callbackHandlerParameter)
             .addParameters(typeVariableNamesAsParameters)
-            .addStatement("callbackHandlers.put($N, $N)", identifierKeyParameter, callbackHandlerParameter)
+            .addStatement("callbackHandlers.put($N.toString(), $N)", identifierKeyParameter, callbackHandlerParameter)
             .build();
 
         var registerHandlerWithStringKey = MethodSpec.methodBuilder("registerHandler")
@@ -142,12 +142,19 @@ public final class CallbackAnnotatedClass {
             .addParameter(String.class, "key")
             .addParameter(callbackHandlerParameter)
             .addParameters(typeVariableNamesAsParameters)
-            .addStatement("callbackHandlers.put(IdentifierKey.of(key), $N)", callbackHandlerParameter)
+            .addStatement("callbackHandlers.put(key, $N)", callbackHandlerParameter)
             .build();
 
         var unregisterListeners = MethodSpec.methodBuilder("unregisterListeners")
             .addModifiers(Modifier.PUBLIC)
             .addParameter(ArrayTypeName.of(IdentifierKey.class), "identifiers")
+            .varargs(true)
+            .addStatement("$T.stream(identifiers).forEach(key -> callbackListeners.remove(key.toString()))", Arrays.class)
+            .build();
+
+        var unregisterListenersWithStringKey = MethodSpec.methodBuilder("unregisterListeners")
+            .addModifiers(Modifier.PUBLIC)
+            .addParameter(ArrayTypeName.of(String.class), "identifiers")
             .varargs(true)
             .addStatement("$T.stream(identifiers).forEach(callbackListeners::remove)", Arrays.class)
             .build();
@@ -155,6 +162,13 @@ public final class CallbackAnnotatedClass {
         var unregisterHandlers = MethodSpec.methodBuilder("unregisterHandlers")
             .addModifiers(Modifier.PUBLIC)
             .addParameter(ArrayTypeName.of(IdentifierKey.class), "identifiers")
+            .varargs(true)
+            .addStatement("$T.stream(identifiers).forEach(key -> callbackHandlers.remove(key.toString()))", Arrays.class)
+            .build();
+
+        var unregisterHandlersWithStringKey = MethodSpec.methodBuilder("unregisterHandlers")
+            .addModifiers(Modifier.PUBLIC)
+            .addParameter(ArrayTypeName.of(String.class), "identifiers")
             .varargs(true)
             .addStatement("$T.stream(identifiers).forEach(callbackHandlers::remove)", Arrays.class)
             .build();
@@ -210,9 +224,11 @@ public final class CallbackAnnotatedClass {
             .addMethod(registerHandler)
             .addMethod(registerHandlerWithStringKey)
             .addMethod(unregisterHandlers)
+            .addMethod(unregisterHandlersWithStringKey)
             .addMethod(registerListener)
             .addMethod(registerListenerWithStringKey)
             .addMethod(unregisterListeners)
+            .addMethod(unregisterListenersWithStringKey)
             .addMethod(invokeWithResult)
             .addMethod(handleWithResult)
             .addMethod(invoke)
