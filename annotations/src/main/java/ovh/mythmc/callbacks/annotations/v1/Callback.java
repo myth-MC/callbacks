@@ -11,4 +11,6 @@ public @interface Callback {
 
     int constructor() default 1;
 
+    String cancelField() default "cancelled";
+
 }

@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
@@ -28,8 +29,8 @@ import com.palantir.javapoet.TypeSpec;
 import com.palantir.javapoet.TypeVariableName;
 
 import ovh.mythmc.callbacks.annotations.v1.Callback;
-import ovh.mythmc.callbacks.annotations.v1.CallbackFieldGetter;
-import ovh.mythmc.callbacks.annotations.v1.CallbackFieldGetters;
+import ovh.mythmc.callbacks.annotations.v1.CallbackField;
+import ovh.mythmc.callbacks.annotations.v1.CallbackFields;
 import ovh.mythmc.callbacks.key.IdentifierKey;
 
 public final class CallbackAnnotatedClass {
@@ -183,7 +184,7 @@ public final class CallbackAnnotatedClass {
             .addStatement("handler.handle(callback)")
             .endControlFlow()
             .beginControlFlow("for ($T listener : callbackListeners.values())", callbackListenerClass)
-            .addStatement("java.util.concurrent.CompletableFuture.runAsync(() -> listener.trigger(" + getParameterGetters() + "))")
+            .addStatement("$T.runAsync(() -> listener.trigger(" + getParameterGetters() + "))", CompletableFuture.class)
             .endControlFlow()
             .beginControlFlow("if (result != null)")
             .addStatement("result.accept(callback)")
@@ -279,9 +280,40 @@ public final class CallbackAnnotatedClass {
 
                 currentConstructorIndex++;
             }
+
         }
 
+        parametersMap.putAll(getExtraParameters());
         return parametersMap;
+    }
+
+    private Map<String, TypeMirror> getExtraParameters() {
+        final Map<String, TypeMirror> parametersMap = new LinkedHashMap<>();
+
+        final ArrayList<CallbackField> fieldGetters = new ArrayList<>();
+        fieldGetters.addAll(Arrays.asList(typeElement.getAnnotationsByType(CallbackField.class)));
+
+        final CallbackFields fieldGettersAnnotation = typeElement.getAnnotation(CallbackFields.class);
+        if (fieldGettersAnnotation != null)
+            fieldGetters.addAll(Arrays.asList(fieldGettersAnnotation.value()));
+
+        for (CallbackField callbackFieldGetter : fieldGetters) {
+            if (!callbackFieldGetter.isExtraParameter())
+                continue;
+
+            for (Element enclosedElement : typeElement.getEnclosedElements()) {
+                if (!enclosedElement.getKind().equals(ElementKind.FIELD)) // skull emoji
+                    continue;
+
+                if (!enclosedElement.getSimpleName().toString().equals(callbackFieldGetter.field()))
+                    continue;
+
+                parametersMap.put(enclosedElement.toString(), enclosedElement.asType());
+            }
+        } 
+
+        return parametersMap;
+
     }
 
     private Collection<TypeVariableName> getTypeVariableNames() {
@@ -316,14 +348,14 @@ public final class CallbackAnnotatedClass {
         if (typeElement.getKind().equals(ElementKind.RECORD))
             return getter + "()";
 
-        final ArrayList<CallbackFieldGetter> fieldGetters = new ArrayList<>();
-        fieldGetters.addAll(Arrays.asList(typeElement.getAnnotationsByType(CallbackFieldGetter.class)));
+        final ArrayList<CallbackField> fieldGetters = new ArrayList<>();
+        fieldGetters.addAll(Arrays.asList(typeElement.getAnnotationsByType(CallbackField.class)));
 
-        final CallbackFieldGetters fieldGettersAnnotation = typeElement.getAnnotation(CallbackFieldGetters.class);
+        final CallbackFields fieldGettersAnnotation = typeElement.getAnnotation(CallbackFields.class);
         if (fieldGettersAnnotation != null)
             fieldGetters.addAll(Arrays.asList(fieldGettersAnnotation.value()));
 
-        for (CallbackFieldGetter fieldGetterAnnotation : fieldGetters) {
+        for (CallbackField fieldGetterAnnotation : fieldGetters) {
             if (fieldGetterAnnotation.field().equals(fieldName)) {
                 getter = fieldGetterAnnotation.getter();
                 break;

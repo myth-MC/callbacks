@@ -9,7 +9,6 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
@@ -17,7 +16,7 @@ import javax.tools.Diagnostic;
 import com.google.auto.service.AutoService;
 
 import ovh.mythmc.callbacks.annotations.v1.Callback;
-import ovh.mythmc.callbacks.annotations.v1.CallbackFieldGetter;
+import ovh.mythmc.callbacks.annotations.v1.CallbackField;
 
 @SupportedAnnotationTypes({
     "ovh.mythmc.callbacks.annotations.v1.Callback",
@@ -29,28 +28,40 @@ public final class CallbackAnnotationProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(CallbackFieldGetter.class)) {
+        for (Element annotatedElement : roundEnv.getElementsAnnotatedWith(CallbackField.class)) {
             if (annotatedElement.getKind() != ElementKind.CLASS && annotatedElement.getKind() != ElementKind.RECORD) {
-                error(annotatedElement, "@%s cannot be used outside classes or records", CallbackFieldGetter.class);
+                error(annotatedElement, "@%s cannot be used outside classes or records", CallbackField.class);
                 return true;
             }
 
-            var annotation = annotatedElement.getAnnotation(CallbackFieldGetter.class);
+            var annotation = annotatedElement.getAnnotation(CallbackField.class);
 
             boolean methodExists = false;
+            boolean fieldExists = false;
 
             for (Element element : annotatedElement.getEnclosedElements()) {
-                if (element.getKind() == ElementKind.METHOD) {
-                    var enclosingClassMethod = (ExecutableElement) element;
-                    if (enclosingClassMethod.getSimpleName().toString().equals(annotation.getter().substring(0, annotation.getter().length() - 2))) {
+                if (element.getKind() == ElementKind.METHOD || element.getKind() == ElementKind.FIELD) {
+                    if (element.getSimpleName().toString().equals(annotation.getter().replace("()", ""))) {
                         methodExists = true;
-                        break;
+                        continue;
+                    }
+                }
+
+                if (element.getKind() == ElementKind.FIELD) {
+                    if (element.getSimpleName().toString().equals(annotation.field())) {
+                        fieldExists = true;
+                        continue;
                     }
                 }
             }
 
             if (!methodExists) {
                 error(annotatedElement, "Method '%s' does not exist", annotation.getter());
+                return true;
+            }
+
+            if (!fieldExists) {
+                error(annotatedElement, "Field '%s' does not exist", annotation.field());
                 return true;
             }
         }
