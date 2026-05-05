@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 final class CallbackAnnotationProcessorTest {
 
     @Test
-    void generatesTopLevelClassForNestedType() throws IOException {
+    void generatesEnclosingAwareClassNameForNestedType() throws IOException {
         var result = compile(
                 "sample.CUserPresence",
                 """
@@ -42,14 +42,14 @@ final class CallbackAnnotationProcessorTest {
 
         assertTrue(result.success(), formatDiagnostics(result.diagnostics()));
 
-        Path generatedCallback = result.generatedSources().resolve("sample/JoinCallback.java");
+        Path generatedCallback = result.generatedSources().resolve("sample/CUserPresenceJoinCallback.java");
         assertTrue(Files.exists(generatedCallback), "expected generated source file: " + generatedCallback);
 
         String generatedSource = Files.readString(generatedCallback);
         assertTrue(
-                generatedSource.contains("public static final JoinCallback INSTANCE = new JoinCallback();"),
+                generatedSource.contains("public static final CUserPresenceJoinCallback INSTANCE = new CUserPresenceJoinCallback();"),
                 generatedSource);
-        assertFalse(generatedSource.contains("CUserPresence.JoinCallback INSTANCE"), generatedSource);
+        assertFalse(generatedSource.contains("public static final JoinCallback INSTANCE"), generatedSource);
     }
 
     @Test

@@ -14,6 +14,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
+import javax.lang.model.element.NestingKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 
@@ -368,11 +369,26 @@ public final class CallbackAnnotatedClass {
     }
 
     private String getGeneratedCallbackClassName() {
-        return simpleName + CALLBACK_SUFFIX;
+        return getNestedTypePath() + CALLBACK_SUFFIX;
     }
 
     private ClassName getGeneratedCallbackClass() {
         return ClassName.get(packageName.toString(), getGeneratedCallbackClassName());
+    }
+
+    private String getNestedTypePath() {
+        if (typeElement.getNestingKind() == NestingKind.TOP_LEVEL) {
+            return simpleName.toString();
+        }
+
+        final ArrayList<String> names = new ArrayList<>();
+        Element current = typeElement;
+        while (current instanceof TypeElement currentType) {
+            names.add(0, currentType.getSimpleName().toString());
+            current = currentType.getEnclosingElement();
+        }
+
+        return String.join("", names);
     }
 
     private TypeSpec buildListenerInterface(Iterable<ParameterSpec> parameters, Collection<TypeVariableName> typeVariables) {
