@@ -59,19 +59,21 @@ public final class CallbackAnnotatedClass {
     JavaFile buildCallbackFile() {
         ArrayList<ParameterSpec> parameters = getParametersAsSpecs();
         Collection<TypeVariableName> typeVariables = getTypeVariableNames();
+        final String callbackClassName = getGeneratedCallbackClassName();
+        final ClassName callbackClass = getGeneratedCallbackClass();
 
         final ClassName objectClass = ClassName.bestGuess(qualifiedName.toString());
         var objectParameter = ParameterSpec.builder(objectClass, "callback").build();
         if (!typeVariables.isEmpty())
             objectParameter = ParameterSpec.builder(ParameterizedTypeName.get(objectClass, typeVariables.toArray(new TypeVariableName[typeVariables.size()])), "callback").build();
 
-        final var callbackListenerTypeSpec = buildListenerInterface(parameters, typeVariables, packageName.toString(), simpleName.toString());
-        final var callbackHandlerTypeSpec = buildHandlerInterface(objectParameter, parameters, typeVariables, qualifiedName.toString(), packageName.toString(), simpleName.toString());
+        final var callbackListenerTypeSpec = buildListenerInterface(parameters, typeVariables);
+        final var callbackHandlerTypeSpec = buildHandlerInterface(objectParameter, typeVariables);
 
-        final var callbackListenerClass = ClassName.get(packageName.toString(), simpleName + CALLBACK_SUFFIX, simpleName + LISTENER_SUFFIX);
+        final var callbackListenerClass = ClassName.get(packageName.toString(), callbackClassName, simpleName + LISTENER_SUFFIX);
         var callbackListenerParameter = ParameterSpec.builder(callbackListenerClass, "callbackListener").build();
 
-        final var callbackHandlerClass = ClassName.get(packageName.toString(), simpleName + CALLBACK_SUFFIX, simpleName + HANDLER_SUFFIX);
+        final var callbackHandlerClass = ClassName.get(packageName.toString(), callbackClassName, simpleName + HANDLER_SUFFIX);
         var callbackHandlerParameter = ParameterSpec.builder(callbackHandlerClass, "callbackHandler").build();
 
         if (!typeVariables.isEmpty()) {
@@ -83,10 +85,10 @@ public final class CallbackAnnotatedClass {
 
         // Static instance
         var instance = FieldSpec.builder(
-                ClassName.bestGuess(qualifiedName.toString() + CALLBACK_SUFFIX), 
-                "INSTANCE", 
+                callbackClass,
+                "INSTANCE",
                 Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-            .initializer("new " + qualifiedName.toString() + CALLBACK_SUFFIX + "()")
+            .initializer("new $T()", callbackClass)
             .build();
 
         // Listener map
@@ -216,7 +218,7 @@ public final class CallbackAnnotatedClass {
             .build();
 
         // Class
-        TypeSpec callbackClass = TypeSpec.classBuilder(simpleName + CALLBACK_SUFFIX)
+        TypeSpec callbackType = TypeSpec.classBuilder(callbackClassName)
             .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
             .addField(instance)
             .addField(handlerMap)
@@ -238,7 +240,7 @@ public final class CallbackAnnotatedClass {
             .addType(callbackListenerTypeSpec)
             .build();
 
-        JavaFile callbackFile = JavaFile.builder(packageName.toString(), callbackClass)
+        JavaFile callbackFile = JavaFile.builder(packageName.toString(), callbackType)
             .build();
 
         return callbackFile;
@@ -365,7 +367,15 @@ public final class CallbackAnnotatedClass {
         return getter;
     }
 
-    private TypeSpec buildListenerInterface(Iterable<ParameterSpec> parameters, Collection<TypeVariableName> typeVariables, String packageName, String simpleName) {
+    private String getGeneratedCallbackClassName() {
+        return simpleName + CALLBACK_SUFFIX;
+    }
+
+    private ClassName getGeneratedCallbackClass() {
+        return ClassName.get(packageName.toString(), getGeneratedCallbackClassName());
+    }
+
+    private TypeSpec buildListenerInterface(Iterable<ParameterSpec> parameters, Collection<TypeVariableName> typeVariables) {
         var callbackListenerBuilder = TypeSpec.interfaceBuilder(simpleName + LISTENER_SUFFIX)
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
             .addAnnotation(FunctionalInterface.class)
@@ -381,7 +391,7 @@ public final class CallbackAnnotatedClass {
         return callbackListenerBuilder.build();
     }
 
-    private TypeSpec buildHandlerInterface(ParameterSpec objectParameter, Iterable<ParameterSpec> parameters, Collection<TypeVariableName> typeVariables, String qualifiedName, String packageName, String simpleName) {
+    private TypeSpec buildHandlerInterface(ParameterSpec objectParameter, Collection<TypeVariableName> typeVariables) {
         var callbackHandlerBuilder = TypeSpec.interfaceBuilder(simpleName + HANDLER_SUFFIX)
             .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
             .addAnnotation(FunctionalInterface.class)
